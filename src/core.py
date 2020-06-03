@@ -1,6 +1,7 @@
 """CORE: Core functionality for Hedera."""
 
-import networkx as nx
+from typing import List
+from networkx import DiGraph
 
 
 class Vine(object):
@@ -8,8 +9,9 @@ class Vine(object):
     dependency structure.
 
     Vines manage creating and editing "task graphs", in which tasks are
-    represented as nodes in a graph and a directed edge between tasks
-    indicates a dependency of the source task on the destination.
+    represented as nodes in a graph (or "leaves") and a directed edge
+    between tasks (or a "tendril") indicates a dependency of the source
+    task on the destination.
 
     A task can be any task - destroy Earth, write paper, make Hedera
     project. A task is a dictionary with two required fields, or "tags":
@@ -25,43 +27,20 @@ class Vine(object):
     interface session is over, serializing its contents into a vine
     serialization at some path before it goes. Vines can also serialize
     themselves in the middle of their existence.
-
-    Attributes:
-        ???
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes an empty Vine with no tasks."""
 
         self._graph() = nx.DiGraph()
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Initializes a Vine from a serialization at the given path.
         For details on serialization, see the Serializer class. Also
         stores the path of this Vine.
 
         Args:
             path: A valid, accessible path.
-
-        Raises:
-            IOError: if the path is inaccessible or invalid.
-        """
-
-        self._graph = self._deserialize(path)
-        self._path = path
-
-    def get_path(self):
-        """Returns the path of this Vine's most recent serialization,
-        including the one it was loaded from."""
-
-        return self._path
-
-    def _deserialize(self, path):
-        """Deserializes the serialized vine at the given path and
-        returns it.
-
-        Returns:
-            A networkx DiGraph.
 
         Raises:
             IOError: if the path is inaccessible or invalid.
@@ -76,17 +55,47 @@ class Vine(object):
                 raise IOError("The file at the path {} either does not exist "
                         "or could not be read from.".format(path))
 
-        return Serializer().deserialize(serialization)
+        self._graph = Serializer().deserialize(serialization)
+        self._path = path
 
-    def _serialize(self):
-        """Serializes this Vine and writes it to its path."""
+    def get_path(self) -> str:
+        """Returns the path of this Vine's most recent serialization,
+        including the one it was loaded from."""
+
+        return self._path
+
+    def is_serializable(self) -> bool:
+        """Determine whether this Vine's graph is serializable. To be
+        serializable, the Vine must have no circular dependencies and
+        be fully connected."""
+
+        return True  # TODO
+
+    def save(self) -> None:
+        """Serializes this Vine and writes it to its file path.
+
+        Raises:
+            IOError: if the serializaton cannot be written to the file
+                path.
+            ValueError: if this Vine is not serializable.
+        """
 
         self.serialize(self.path)
 
-    def _serialize(self, path):
-        """Serializes this Vine and stores it at the given path."""
+    def save(self, path: str) -> None:
+        """Serializes this Vine and writes it to the given file path.
 
-        return Serializer().serialize(self._graph)
+        Raises:
+            IOError: if the serializaton cannot be written to the file
+                path.
+            ValueError: if this Vine is not serializable.
+        """
+
+        if not self.is_serializable():
+            raise ValueError("Attempted serialization of a non-serializable "
+                    "Vine.")
+
+        Serializer().serialize(self._graph)
 
 
 class Serializer(object):
@@ -99,14 +108,14 @@ class Serializer(object):
 
         pass
 
-    def serialize(self):
+    def serialize(self, graph: nx.Digraph) -> List[str]:
         """Turns a networkx Digraph into a serialized vine, a list of
         strings following the vine serialization scheme. Returns the
         result."""
 
         return []
 
-    def deserialize(self):
+    def deserialize(self, ser_vine: List[str]) -> nx.DiGraph:
         """Turns a serialized vine, a list of strings following the
         serialization scheme, into a networkx DiGraph. Returns the
         result."""
